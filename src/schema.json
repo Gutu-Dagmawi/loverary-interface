@@ -1,0 +1,178 @@
+{
+    "tables": {
+      "accounts": {
+        "columns": {
+          "status": { "type": "integer", "default": 1 },
+          "email": "citext",
+          "password_hash": "string",
+          "created_at": "datetime",
+          "updated_at": "datetime",
+          "user_id": "bigint"
+        },
+        "indexes": ["email (unique, partial)", "user_id"],
+        "constraints": {
+          "check": "email ~ '^[^,;@ \\r\\n]+@[^,@; \\r\\n]+\\.[^,@; \\r\\n]+$'"
+        },
+        "foreign_keys": {
+          "user_id": "users"
+        }
+      },
+      "authors": {
+        "columns": {
+          "name": "string",
+          "gender": "integer",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      "books": {
+        "columns": {
+          "isbn": "string",
+          "stock": "integer",
+          "title": "string",
+          "author_id": "bigint",
+          "summary": "text",
+          "price": "decimal",
+          "cover_url": "string",
+          "created_at": "datetime",
+          "updated_at": "datetime",
+          "published_date": "datetime",
+          "edition": "integer",
+          "language": "string",
+          "page_count": "integer"
+        },
+        "indexes": ["author_id"],
+        "foreign_keys": {
+          "author_id": "authors"
+        }
+      },
+      "cart_items": {
+        "columns": {
+          "cart_id": "bigint",
+          "book_id": "bigint",
+          "quantity": "integer",
+          "price": { "type": "decimal", "precision": 10, "scale": 2 },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["cart_id", "book_id"],
+        "foreign_keys": {
+          "cart_id": "carts",
+          "book_id": "books"
+        }
+      },
+      "carts": {
+        "columns": {
+          "user_id": "bigint",
+          "status": "integer",
+          "total_price": { "type": "decimal", "precision": 10, "scale": 2 },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["user_id"],
+        "foreign_keys": {
+          "user_id": "users"
+        }
+      },
+      "categories": {
+        "columns": {
+          "name": "string",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      "order_items": {
+        "columns": {
+          "order_id": "bigint",
+          "book_id": "bigint",
+          "quantity": "integer",
+          "price": { "type": "decimal", "precision": 10, "scale": 2 },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["order_id", "book_id"],
+        "foreign_keys": {
+          "order_id": "orders",
+          "book_id": "books"
+        }
+      },
+      "orders": {
+        "columns": {
+          "user_id": "bigint",
+          "status": "integer",
+          "total_price": { "type": "decimal", "precision": 10, "scale": 2 },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["user_id"],
+        "foreign_keys": {
+          "user_id": "users"
+        }
+      },
+      "reviews": {
+        "columns": {
+          "title": "string",
+          "comment": "text",
+          "user_id": "bigint",
+          "book_id": "bigint",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["user_id", "book_id"],
+        "foreign_keys": {
+          "user_id": "users",
+          "book_id": "books"
+        }
+      },
+      "shippings": {
+        "columns": {
+          "order_id": "bigint",
+          "address": "string",
+          "status": "integer",
+          "tracking_code": "string",
+          "shipped_at": "datetime",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["order_id"],
+        "foreign_keys": {
+          "order_id": "orders"
+        }
+      },
+      "users": {
+        "columns": {
+          "username": "string",
+          "gender": "integer",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      "wishlists": {
+        "columns": {
+          "user_id": "bigint",
+          "name": "string",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["user_id"],
+        "foreign_keys": {
+          "user_id": "users"
+        }
+      },
+      "wishlist_items": {
+        "columns": {
+          "wishlist_id": "bigint",
+          "book_id": "bigint",
+          "added_at": "datetime",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        },
+        "indexes": ["wishlist_id", "book_id"],
+        "foreign_keys": {
+          "wishlist_id": "wishlists",
+          "book_id": "books"
+        }
+      }
+    }
+  }
+  

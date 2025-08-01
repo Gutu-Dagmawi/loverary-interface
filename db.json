@@ -1,0 +1,494 @@
+{
+  "accounts": [
+    {
+      "id": "1",
+      "status": 1,
+      "email": "user1@example.com",
+      "user_id": 1
+    },
+    {
+      "id": "2",
+      "status": 1,
+      "email": "user2@example.com"
+    }
+  ],
+  "users": [
+    {
+      "id": "1",
+      "username": "booklover42",
+      "gender": 2
+    },
+    {
+      "id": "2",
+      "username": "literature_fan",
+      "gender": 1
+    }
+  ],
+  "authors": [
+    {
+      "id": "1",
+      "name": "Leo Tolstoy",
+      "gender": 1
+    },
+    {
+      "id": "2",
+      "name": "Fyodor Dostoevsky",
+      "gender": 1
+    }
+  ],
+  "books": [
+    {
+      "id": "1",
+      "isbn": "9780140449174",
+      "stock": 10,
+      "title": "A Confession",
+      "author": "Leo Tolstoy",
+      "summary": "A philosophical work by Leo Tolstoy in which he questions his faith and the meaning of life after a profound spiritual crisis.",
+      "price": 14.99,
+      "cover_url": "/assets/covers/a_confession.jpg",
+      "published_date": "1882",
+      "edition": 1,
+      "language": "English",
+      "page_count": 128
+    },
+    {
+      "id": "2",
+      "isbn": "9780143035008",
+      "stock": 8,
+      "title": "Anna Karenina",
+      "author": "Leo Tolstoy",
+      "summary": "A complex novel that explores themes of love, adultery, faith, family, and Russian society.",
+      "price": 19.99,
+      "cover_url": "/assets/covers/anna_karenina.png",
+      "published_date": "1878",
+      "edition": 1,
+      "language": "English",
+      "page_count": 864
+    },
+    {
+      "id": "3",
+      "isbn": "9780143058144",
+      "stock": 12,
+      "title": "Crime and Punishment",
+      "author": "Fyodor Dostoevsky",
+      "summary": "A novel that focuses on the mental anguish and moral dilemmas of Rodion Raskolnikov, an impoverished ex-student in Saint Petersburg who formulates a plan to kill an unscrupulous pawnbroker for her money.",
+      "price": 17.99,
+      "cover_url": "/assets/covers/crime_and_punishment.jpg",
+      "published_date": "1866",
+      "edition": 1,
+      "language": "English",
+      "page_count": 671
+    },
+    {
+      "id": "4",
+      "isbn": "9780140447927",
+      "stock": 5,
+      "title": "Demons",
+      "author": "Fyodor Dostoevsky",
+      "summary": "A novel about a group of political radicals, known as nihilists, who try to incite a revolution in pre-revolutionary Russia.",
+      "price": 16.99,
+      "cover_url": "/assets/covers/devils.jpg",
+      "published_date": "1872",
+      "edition": 1,
+      "language": "English",
+      "page_count": 733
+    },
+    {
+      "id": "5",
+      "isbn": "9780140445060",
+      "stock": 7,
+      "title": "Lives and Deaths",
+      "author": "Leo Tolstoy",
+      "summary": "A collection of stories exploring the human condition, mortality, and the meaning of existence.",
+      "price": 15.99,
+      "cover_url": "/assets/covers/lives_and_deaths.jpeg",
+      "published_date": "1886",
+      "edition": 1,
+      "language": "English",
+      "page_count": 352
+    },
+    {
+      "id": "6",
+      "isbn": "9780140446173",
+      "stock": 9,
+      "title": "Notes from Underground",
+      "author": "Fyodor Dostoevsky",
+      "summary": "A novella presenting the memoirs of an unnamed narrator, a retired civil servant living in St. Petersburg, who is considered by many critics to be the first existentialist novel.",
+      "price": 13.99,
+      "cover_url": "/assets/covers/notes_from_the_underground.jpeg",
+      "published_date": "1864",
+      "edition": 1,
+      "language": "English",
+      "page_count": 136
+    },
+    {
+      "id": "7",
+      "isbn": "9780140449235",
+      "stock": 6,
+      "title": "Resurrection",
+      "author": "Leo Tolstoy",
+      "summary": "The story of a nobleman's attempt to redeem himself for a sin committed against a woman he once seduced.",
+      "price": 18.99,
+      "cover_url": "/assets/covers/resurrection.jpg",
+      "published_date": "1899",
+      "edition": 1,
+      "language": "English",
+      "page_count": 518
+    },
+    {
+      "id": "8",
+      "isbn": "9780374528379",
+      "stock": 11,
+      "title": "The Brothers Karamazov",
+      "author": "Fyodor Dostoevsky",
+      "summary": "A passionate philosophical novel that enters deeply into questions of God, free will, and morality.",
+      "price": 21.99,
+      "cover_url": "/assets/covers/the_brothers_karamazov.jpg",
+      "published_date": "1880",
+      "edition": 1,
+      "language": "English",
+      "page_count": 796
+    },
+    {
+      "id": "9",
+      "isbn": "9780553211335",
+      "stock": 4,
+      "title": "The Death of Ivan Ilyich",
+      "author": "Leo Tolstoy",
+      "summary": "A novella that tells the story of a high-court judge and his sufferings and death from a terminal illness in 19th-century Russia.",
+      "price": 12.99,
+      "cover_url": "/assets/covers/the_death_of_ivan_ilych.jpeg",
+      "published_date": "1886",
+      "edition": 1,
+      "language": "English",
+      "page_count": 92
+    }
+  ],
+  "carts": [
+    {
+      "id": "1",
+      "user_id": 1,
+      "status": 1,
+      "total_price": 312.81,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:26:21.483Z"
+    }
+  ],
+  "cart_items": [
+    {
+      "id": "1",
+      "cart_id": 1,
+      "book_id": 1,
+      "quantity": 2,
+      "price": 29.98,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "7e38",
+      "cart_id": 1,
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T13:46:07.313Z",
+      "updated_at": "2025-07-30T13:46:07.313Z"
+    },
+    {
+      "id": "3d02",
+      "cart_id": 1,
+      "book_id": 3,
+      "quantity": 1,
+      "price": 17.99,
+      "created_at": "2025-07-30T13:46:35.612Z",
+      "updated_at": "2025-07-30T13:46:35.612Z"
+    },
+    {
+      "id": "0740",
+      "cart_id": 1,
+      "book_id": 3,
+      "quantity": 1,
+      "price": 17.99,
+      "created_at": "2025-07-30T13:48:09.058Z",
+      "updated_at": "2025-07-30T13:48:09.058Z"
+    },
+    {
+      "id": "3984",
+      "cart_id": 1,
+      "book_id": 3,
+      "quantity": 1,
+      "price": 17.99,
+      "created_at": "2025-07-30T13:50:43.657Z",
+      "updated_at": "2025-07-30T13:50:43.657Z"
+    },
+    {
+      "id": "d415",
+      "cart_id": 1,
+      "book_id": 2,
+      "quantity": 1,
+      "price": 19.99,
+      "created_at": "2025-07-30T13:53:49.559Z",
+      "updated_at": "2025-07-30T13:53:49.559Z"
+    },
+    {
+      "id": "dcb1",
+      "cart_id": 1,
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T13:56:18.754Z",
+      "updated_at": "2025-07-30T13:56:18.754Z"
+    },
+    {
+      "id": "8aed",
+      "cart_id": "1",
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T13:56:56.954Z",
+      "updated_at": "2025-07-30T13:56:56.954Z"
+    },
+    {
+      "id": "3212",
+      "cart_id": "1",
+      "book_id": 2,
+      "quantity": 1,
+      "price": 19.99,
+      "created_at": "2025-07-30T14:00:27.886Z",
+      "updated_at": "2025-07-30T14:00:27.886Z"
+    },
+    {
+      "id": "1ab3",
+      "cart_id": "1",
+      "book_id": 6,
+      "quantity": 1,
+      "price": 13.99,
+      "created_at": "2025-07-30T14:00:43.027Z",
+      "updated_at": "2025-07-30T14:00:43.027Z"
+    },
+    {
+      "id": "1607",
+      "cart_id": "1",
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T14:02:23.854Z",
+      "updated_at": "2025-07-30T14:02:23.854Z"
+    },
+    {
+      "id": "d966",
+      "cart_id": "1",
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T14:05:16.581Z",
+      "updated_at": "2025-07-30T14:05:16.581Z"
+    },
+    {
+      "id": "dd68",
+      "cart_id": "1",
+      "book_id": 2,
+      "quantity": 1,
+      "price": 19.99,
+      "created_at": "2025-07-30T14:05:29.844Z",
+      "updated_at": "2025-07-30T14:05:29.844Z"
+    },
+    {
+      "id": "0ada",
+      "cart_id": "1",
+      "book_id": 5,
+      "quantity": 1,
+      "price": 15.99,
+      "created_at": "2025-07-30T14:05:50.505Z",
+      "updated_at": "2025-07-30T14:05:50.505Z"
+    },
+    {
+      "id": "7bef",
+      "cart_id": "1",
+      "book_id": 5,
+      "quantity": 1,
+      "price": 15.99,
+      "created_at": "2025-07-30T14:06:08.181Z",
+      "updated_at": "2025-07-30T14:06:08.181Z"
+    },
+    {
+      "id": "5ae1",
+      "cart_id": "1",
+      "book_id": 3,
+      "quantity": 1,
+      "price": 17.99,
+      "created_at": "2025-07-30T14:06:22.631Z",
+      "updated_at": "2025-07-30T14:06:22.631Z"
+    },
+    {
+      "id": "526c",
+      "cart_id": "1",
+      "quantity": 1,
+      "price": 0,
+      "created_at": "2025-07-30T14:29:45.924Z",
+      "updated_at": "2025-07-30T14:29:45.924Z"
+    },
+    {
+      "id": "5f37",
+      "cart_id": "1",
+      "quantity": 1,
+      "price": 0,
+      "created_at": "2025-07-30T14:31:34.411Z",
+      "updated_at": "2025-07-30T14:31:34.411Z"
+    },
+    {
+      "id": "08b2",
+      "cart_id": "1",
+      "quantity": 1,
+      "price": 0,
+      "created_at": "2025-07-30T16:26:21.435Z",
+      "updated_at": "2025-07-30T16:26:21.435Z"
+    },
+    {
+      "id": "f968",
+      "cart_id": "1",
+      "quantity": 1,
+      "price": 0,
+      "created_at": "2025-07-30T16:36:40.070Z",
+      "updated_at": "2025-07-30T16:36:40.070Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "1",
+      "name": "Classic Literature"
+    },
+    {
+      "id": "2",
+      "name": "Philosophy"
+    },
+    {
+      "id": "3",
+      "name": "Russian Literature"
+    }
+  ],
+  "orders": [
+    {
+      "id": "1",
+      "user_id": 2,
+      "status": 2,
+      "total_price": 56.97,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "2600",
+      "user_id": 1,
+      "status": 1,
+      "total_price": 14.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "3239",
+      "user_id": 1,
+      "status": 1,
+      "total_price": 19.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "a4ca",
+      "user_id": 1,
+      "status": 1,
+      "total_price": 14.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    }
+  ],
+  "order_items": [
+    {
+      "id": "1",
+      "order_id": 1,
+      "book_id": 2,
+      "quantity": 1,
+      "price": 19.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "order_id": 1,
+      "book_id": 5,
+      "quantity": 1,
+      "price": 15.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "order_id": 1,
+      "book_id": 9,
+      "quantity": 1,
+      "price": 12.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "order_id": 1,
+      "book_id": 7,
+      "quantity": 1,
+      "price": 18.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "dc0d",
+      "order_id": 2600,
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "633d",
+      "order_id": 3239,
+      "book_id": 2,
+      "quantity": 1,
+      "price": 19.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    },
+    {
+      "id": "5dae",
+      "order_id": 4000,
+      "book_id": 1,
+      "quantity": 1,
+      "price": 14.99,
+      "created_at": "2025-07-30T16:00:00.000Z",
+      "updated_at": "2025-07-30T16:00:00.000Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "1",
+      "title": "Amazing read!",
+      "comment": "One of the best books I've ever read. The depth of the characters is incredible.",
+      "user_id": 1,
+      "book_id": 2
+    },
+    {
+      "id": "2",
+      "title": "Thought-provoking",
+      "comment": "Challenging but rewarding. Makes you question your own morality.",
+      "user_id": 2,
+      "book_id": 3
+    }
+  ],
+  "shippings": [
+    {
+      "id": "1",
+      "order_id": 1,
+      "address": "123 Book Ln, Literature City, LC 12345",
+      "status": 2,
+      "tracking_code": "SHIP12345678",
+      "shipped_at": "2025-07-28T16:30:00Z"
+    }
+  ]
+}
