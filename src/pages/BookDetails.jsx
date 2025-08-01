@@ -137,7 +137,7 @@ export default function BookDetails() {
             {/* Book Cover */}
             <div className="w-full md:w-1/3 p-4 md:p-6 flex justify-center bg-gray-100">
               <img 
-                src={book.cover_url || 'https://via.placeholder.com/300x450?text=No+Cover'} 
+                src={book.cover_url} 
                 alt={`${book.title} cover`} 
                 className="h-auto max-h-[500px] w-auto max-w-full object-contain rounded shadow-md"
                 style={{ maxHeight: '80vh' }}
@@ -147,17 +147,11 @@ export default function BookDetails() {
             {/* Book Details */}
             <div className="w-full md:w-2/3 p-4 md:p-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
-              <p className="text-xl text-gray-600 mb-4">by {book.author || 'Unknown Author'}</p>
+              <p className="text-xl text-gray-600 mb-4">by {book.author_name || 'Unknown Author'}</p>
               
-              <div className="flex items-center mb-6">
-                <div className="flex text-yellow-400 mr-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span key={star}>
-                      {star <= (book.rating || 0) ? '★' : '☆'}
-                    </span>
-                  ))}
-                </div>
-                <span className="text-gray-600 text-sm">({book.reviewCount || 0} reviews)</span>
+              <div className="mb-6">
+                <p className="text-sm text-gray-500">Edition: {book.edition || 'N/A'}</p>
+                <p className="text-sm text-gray-500">In Stock: {book.stock || 0} available</p>
               </div>
               
               <div className="mb-6">
@@ -173,8 +167,8 @@ export default function BookDetails() {
                   <p className="font-medium">{book.isbn || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Published</p>
-                  <p className="font-medium">{book.published_date || 'N/A'}</p>
+                  <p className="text-sm text-gray-500">Edition</p>
+                  <p className="font-medium">{book.edition || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Pages</p>
@@ -189,10 +183,12 @@ export default function BookDetails() {
               <div className="border-t border-gray-200 pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-2xl font-bold text-gray-900">${book.price?.toFixed(2) || 'N/A'}</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                    ${book.price ? parseFloat(book.price).toFixed(2) : 'N/A'}
+                  </span>
                     {book.originalPrice && (
                       <span className="ml-2 text-sm text-gray-500 line-through">
-                        ${book.originalPrice.toFixed(2)}
+                        ${parseFloat(book.originalPrice).toFixed(2)}
                       </span>
                     )}
                   </div>

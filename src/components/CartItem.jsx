@@ -10,7 +10,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
     <div className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm border border-gray-100 mb-4">
       <div className="flex items-center space-x-4">
         <img 
-          src={book?.cover_url || 'https://via.placeholder.com/80x120?text=No+Cover'} 
+          src={book?.cover_url} 
           alt={book?.title || 'Book cover'}
           className="w-20 h-24 object-cover rounded"
         />

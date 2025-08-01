@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { createOrder } from '../services/orderService';
 import cartService from '../services/cartService';
 import api from '../services/api';
 
@@ -20,31 +19,67 @@ export function CartProvider({ children }) {
   const initializeCart = async () => {
     try {
       const cartData = await cartService.getActiveCart();
-      const cartItems = cartData.cart_items || [];
+      console.log('Cart data from API:', cartData);
       
-      // Fetch book details for each cart item
-      const itemsWithBooks = await Promise.all(
+      // Use cart_items if available, otherwise fall back to items or empty array
+      const cartItems = cartData.cart_items || cartData.items || [];
+      console.log('Cart items:', cartItems);
+      
+      // Process cart items to ensure they have the required structure
+      const processedItems = await Promise.all(
         cartItems.map(async (item) => {
           try {
-            const bookResponse = await api.get(`/books/${item.book_id}`);
+            // If the item already has book details, use them
+            if (item.title && item.price) {
+              return {
+                ...item,
+                book_id: item.book_id || item.id,
+                book: {
+                  id: item.book_id || item.id,
+                  title: item.title,
+                  price: parseFloat(item.price) || 0,
+                  cover_url: item.cover_url || ''
+                }
+              };
+            }
+            
+            // Otherwise, fetch book details
+            const bookId = item.book_id || item.id;
+            if (bookId) {
+              const bookResponse = await api.get(`/books/${bookId}`);
+              return {
+                ...item,
+                book_id: bookId,
+                book: bookResponse.data || { id: bookId, title: 'Unknown Book', price: 0 }
+              };
+            }
+            
+            return item;
+          } catch (err) {
+            console.error(`Failed to process cart item:`, item, err);
             return {
               ...item,
-              book: bookResponse.data || {}
+              book_id: item.book_id || item.id,
+              book: { id: item.book_id || item.id, title: 'Unknown Book', price: 0 }
             };
-          } catch (err) {
-            console.error(`Failed to fetch book ${item.book_id}:`, err);
-            return { ...item, book: {} };
           }
         })
       );
 
+      console.log('Processed cart items:', processedItems);
+      
+      const itemCount = processedItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      const total = parseFloat(processedItems.reduce(
+        (sum, item) => sum + ((item.book?.price || 0) * (item.quantity || 0)),
+        0
+      ).toFixed(2));
+      
+      console.log('Setting cart state:', { items: processedItems, itemCount, total });
+      
       setCart({
-        items: itemsWithBooks,
-        itemCount: itemsWithBooks.reduce((sum, item) => sum + (item.quantity || 0), 0),
-        total: parseFloat(itemsWithBooks.reduce(
-          (sum, item) => sum + ((item.book?.price || 0) * (item.quantity || 0)),
-          0
-        ).toFixed(2))
+        items: processedItems,
+        itemCount,
+        total
       });
     } catch (error) {
       console.error('Failed to fetch cart', error);
@@ -55,9 +90,17 @@ export function CartProvider({ children }) {
     }
   };
 
-  // Load cart on mount
+  // Load cart on mount and when auth state changes
   useEffect(() => {
-    initializeCart();
+    // Only try to load cart if user is authenticated
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      initializeCart();
+    } else {
+      // If not authenticated, ensure cart is empty
+      setCart({ ...defaultCart });
+      setIsLoading(false);
+    }
   }, []);
 
   const updateCart = (newCart) => {
@@ -75,25 +118,77 @@ export function CartProvider({ children }) {
 
   const addToCart = async (book, quantity = 1) => {
     try {
-      const newItem = await cartService.addToCart(book.id, quantity);
+      // Pass book and quantity as an object to match the service's expected format
+      const response = await cartService.addToCart({
+        book_id: book.id,
+        quantity: quantity
+      });
       
-      // Update local state with the server response
-      const updatedItems = [...(cart.items || []), {
-        ...newItem,
-        book: book // Include the full book object from the parameter
-      }];
+      // The backend returns the updated cart in response.cart or response.data
+      const updatedCart = response.cart || response.data || {};
+      const cartItems = updatedCart.cart_items || updatedCart.items || [];
       
-      const updatedCart = {
-        items: updatedItems,
-        itemCount: updatedItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
-        total: parseFloat(updatedItems.reduce(
-          (sum, item) => sum + ((item.book?.price || 0) * (item.quantity || 0)),
-          0
-        ).toFixed(2))
+      // Process the cart items to ensure they have the required structure
+      const processedItems = await Promise.all(
+        cartItems.map(async (item) => {
+          try {
+            // If the item already has book details, use them
+            if (item.title && item.price) {
+              return {
+                ...item,
+                book_id: item.book_id || item.id,
+                book: {
+                  id: item.book_id || item.id,
+                  title: item.title,
+                  price: parseFloat(item.price) || 0,
+                  cover_url: item.cover_url || ''
+                },
+                quantity: item.quantity || 1
+              };
+            }
+            
+            // Otherwise, fetch book details
+            const bookId = item.book_id || item.id;
+            if (bookId) {
+              const bookResponse = await api.get(`/books/${bookId}`);
+              return {
+                ...item,
+                book_id: bookId,
+                book: bookResponse.data || { id: bookId, title: 'Unknown Book', price: 0 },
+                quantity: item.quantity || 1
+              };
+            }
+            
+            return item;
+          } catch (err) {
+            console.error(`Failed to process cart item:`, item, err);
+            return {
+              ...item,
+              book_id: item.book_id || item.id,
+              book: { id: item.book_id || item.id, title: 'Unknown Book', price: 0 },
+              quantity: item.quantity || 1
+            };
+          }
+        })
+      );
+      
+      const itemCount = processedItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      const total = parseFloat(processedItems.reduce(
+        (sum, item) => sum + ((item.book?.price || 0) * (item.quantity || 0)),
+        0
+      ).toFixed(2));
+      
+      // Update the cart state with the processed items
+      const newCartState = {
+        items: processedItems,
+        itemCount,
+        total
       };
       
-      setCart(updatedCart);
-      return updatedCart;
+      // Clear the current cart cache to force a refresh
+      cartService.clearCache();
+      setCart(newCartState);
+      return newCartState;
     } catch (error) {
       console.error('Failed to add item to cart', error);
       throw error;
@@ -172,18 +267,8 @@ export function CartProvider({ children }) {
         throw new Error('Cannot checkout with an empty cart');
       }
 
-      // Prepare order data
-      const orderData = {
-        total_price: cart.total,
-        items: cart.items.map(item => ({
-          book_id: item.book_id,
-          quantity: item.quantity,
-          price: item.book?.price || 0
-        }))
-      };
-
-      // Create the order using the order service
-      const order = await createOrder(orderData);
+      // Use cartService to process the checkout
+      const result = await cartService.checkout();
       
       // Clear the cart after successful checkout
       await clearCart();
@@ -192,7 +277,7 @@ export function CartProvider({ children }) {
       return { 
         success: true, 
         message: 'Order placed successfully!',
-        order
+        order: result.order
       };
     } catch (error) {
       console.error('Checkout failed:', error);

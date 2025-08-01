@@ -79,10 +79,14 @@ export default function OrderItem({ order }) {
                 <div className="flex-shrink-0 w-full sm:w-20 h-32 sm:h-20 bg-gray-100 rounded-md overflow-hidden mb-3 sm:mb-0 sm:mr-4">
                   {item.book?.cover_url ? (
                     <img
-                      src={item.book.cover_url}
+                      src={`http://localhost:3000/${item.book.cover_url}`}
                       alt={item.book.title}
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/80x120?text=No+Cover';
+                      }}
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-300">
@@ -95,15 +99,15 @@ export default function OrderItem({ order }) {
                     <div className="flex-1 min-w-0 pr-2">
                       <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">
                         <Link 
-                          to={`/books/${item.book_id}`} 
+                          to={`/books/${item.book?.id || item.book_id}`} 
                           className="hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded"
                         >
                           {item.book?.title || 'Unknown Book'}
                         </Link>
                       </h3>
-                      {item.book?.author && (
+                      {item.book?.author_name && (
                         <p className="mt-1 text-xs sm:text-sm text-gray-500 truncate">
-                          by {item.book.author}
+                          by {item.book.author_name}
                         </p>
                       )}
                     </div>
@@ -118,7 +122,7 @@ export default function OrderItem({ order }) {
                   </div>
                   <div className="mt-2 flex justify-between items-center">
                     <p className="text-xs sm:text-sm text-gray-500">
-                      Item #{item.book_id}
+                      {item.book?.isbn ? `ISBN: ${item.book.isbn}` : 'N/A'}
                     </p>
                     <p className="text-sm font-medium text-gray-900">
                       ${parseFloat((item.price || 0) * (item.quantity || 0)).toFixed(2)}

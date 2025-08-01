@@ -1,13 +1,14 @@
 # Authentication API Documentation
 
-This document explains how to handle user authentication with the Loverary API.
+This document explains how to handle user authentication with the Loverary API. The API uses session-based authentication with CSRF protection.
 
 ## Table of Contents
 1. [User Registration](#user-registration)
 2. [User Login](#user-login)
-3. [Current User](#current-user)
-4. [User Logout](#user-logout)
-5. [Error Handling](#error-handling)
+3. [CSRF Token](#csrf-token)
+4. [Current User](#current-user)
+5. [User Logout](#user-logout)
+6. [Error Handling](#error-handling)
 
 ## User Registration
 
@@ -90,6 +91,43 @@ Authenticate a user and create a new session.
 }
 ```
 
+## CSRF Token
+
+Get a CSRF token for form submissions and non-GET requests. This token is required for all state-changing operations (POST, PUT, PATCH, DELETE) to prevent Cross-Site Request Forgery (CSRF) attacks.
+
+**Endpoint**: `GET /users/csrf-token`
+
+### Headers
+- `Cookie`: `_loverary_session=<session_token>` (automatically handled by browser)
+
+### Success Response (200 OK)
+```json
+{
+  "csrf_token": "<csrf_token_value>"
+}
+```
+
+### Usage
+1. Fetch the CSRF token when your application loads
+2. Store it in memory (not in localStorage/sessionStorage for security)
+3. Include it in the `X-CSRF-Token` header for all non-GET requests
+
+Example request with CSRF token:
+```
+POST /some/protected/endpoint
+X-CSRF-Token: <csrf_token_value>
+Content-Type: application/json
+
+{"key": "value"}
+```
+
+### Error Response (401 Unauthorized)
+```json
+{
+  "error": "Not authenticated"
+}
+```
+
 ## Current User
 
 Get the currently authenticated user's information.
@@ -117,17 +155,25 @@ Get the currently authenticated user's information.
 
 ## User Logout
 
-Terminate the current user's session.
+End the current user's session.
 
-**Endpoint**: `DELETE /logout`
+**Endpoint**: `DELETE /users/logout`
 
 ### Headers
 - `Cookie`: `_loverary_session=<session_token>` (automatically handled by browser)
+- `X-CSRF-Token`: `<csrf_token>` (required)
 
 ### Success Response (200 OK)
 ```json
 {
-  "message": "logout successful"
+  "message": "Logout successful"
+}
+```
+
+### Error Response (401 Unauthorized)
+```json
+{
+  "error": "Not authenticated"
 }
 ```
 

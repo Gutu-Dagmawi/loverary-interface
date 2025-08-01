@@ -1,6 +1,10 @@
 # Book Fetching API Documentation
 
-This document explains how to retrieve and filter books from the Loverary API.
+This document explains how to retrieve, filter, sort, and paginate books from the Loverary API. The API provides comprehensive access to the book catalog with various query parameters for fine-grained control over the results.
+
+## Authentication
+
+Most book endpoints are publicly accessible and do not require authentication. However, some features like adding reviews or managing favorites require authentication.
 
 ## Table of Contents
 1. [Get All Books](#get-all-books)
@@ -13,18 +17,206 @@ This document explains how to retrieve and filter books from the Loverary API.
    - [By Search Query](#by-search-query)
 4. [Sorting](#sorting)
 5. [Pagination](#pagination)
-6. [Error Handling](#error-handling)
+6. [Response Format](#response-format)
+7. [Error Handling](#error-handling)
+8. [Frontend Implementation Guide](#frontend-implementation-guide)
 
 ## Get All Books
 
-Retrieve a list of all available books.
+Retrieve a paginated list of books with optional filtering and sorting.
 
 **Endpoint**: `GET /books`
 
 ### Query Parameters
-- `include`: String (comma-separated list of related resources to include, e.g., `reviews,author`)
+
+#### Pagination
 - `page`: Integer (page number for pagination, default: 1)
-- `per_page`: Integer (number of items per page, default: 20, max: 100)
+- `per_page`: Integer (number of items per page, default: 10, max: 100)
+
+#### Filters
+- `in_stock`: Boolean (filter books that are in stock)
+- `author_id`: Integer (filter by author ID)
+- `category_id`: Integer (filter by category ID)
+- `min_price`: Decimal (minimum price)
+- `max_price`: Decimal (maximum price)
+- `q`: String (search query for book title or author name)
+
+#### Sorting
+- `sort`: String (field to sort by, e.g., `title`, `price`, `created_at`)
+- `order`: String (sort direction: `asc` or `desc`, default: `asc`)
+
+## Filtering Books
+
+### By Availability
+
+Filter books by their stock availability.
+
+**Example**: 
+```
+GET /books?in_stock=true
+```
+
+**Frontend Implementation**:
+```javascript
+// When "In Stock" checkbox is toggled
+function handleStockFilter(checked) {
+  const params = new URLSearchParams(window.location.search);
+  if (checked) {
+    params.set('in_stock', 'true');
+  } else {
+    params.delete('in_stock');
+  }
+  // Update URL and fetch books
+  updateBooks(params);
+}
+```
+
+### By Author
+
+Filter books by a specific author.
+
+**Example**: 
+```
+GET /books?author_id=1
+```
+
+**Frontend Implementation**:
+```javascript
+// When an author is selected from a dropdown
+function handleAuthorFilter(authorId) {
+  const params = new URLSearchParams(window.location.search);
+  if (authorId) {
+    params.set('author_id', authorId);
+  } else {
+    params.delete('author_id');
+  }
+  // Reset to first page when changing filters
+  params.set('page', '1');
+  updateBooks(params);
+}
+```
+
+### By Category
+
+Filter books by a specific category.
+
+**Example**: 
+```
+GET /books?category_id=2
+```
+
+**Frontend Implementation**:
+```javascript
+// When a category is selected
+function handleCategoryFilter(categoryId) {
+  const params = new URLSearchParams(window.location.search);
+  if (categoryId) {
+    params.set('category_id', categoryId);
+  } else {
+    params.delete('category_id');
+  }
+  params.set('page', '1');
+  updateBooks(params);
+}
+```
+
+### By Price Range
+
+Filter books within a specific price range.
+
+**Example**: 
+```
+GET /books?min_price=10&max_price=50
+```
+
+**Frontend Implementation**:
+```javascript
+// When price range is applied
+function handlePriceFilter(minPrice, maxPrice) {
+  const params = new URLSearchParams(window.location.search);
+  
+  if (minPrice) {
+    params.set('min_price', minPrice);
+  } else {
+    params.delete('min_price');
+  }
+  
+  if (maxPrice) {
+    params.set('max_price', maxPrice);
+  } else {
+    params.delete('max_price');
+  }
+  
+  params.set('page', '1');
+  updateBooks(params);
+}
+```
+
+### By Search Query
+
+Search books by title or author name.
+
+**Example**: 
+```
+GET /books?q=harry+potter
+```
+
+**Frontend Implementation**:
+```javascript
+// When search form is submitted
+function handleSearch(query) {
+  const params = new URLSearchParams(window.location.search);
+  
+  if (query.trim()) {
+    params.set('q', query.trim());
+  } else {
+    params.delete('q');
+  }
+  
+  params.set('page', '1');
+  updateBooks(params);
+}
+```
+
+## Sorting
+
+Sort books by different fields in ascending or descending order.
+
+**Examples**:
+- Sort by price (low to high): `GET /books?sort=price&order=asc`
+- Sort by newest first: `GET /books?sort=created_at&order=desc`
+- Sort by title (A-Z): `GET /books?sort=title&order=asc`
+
+**Frontend Implementation**:
+```javascript
+// When sort option is changed
+function handleSortChange(sortField, sortOrder) {
+  const params = new URLSearchParams(window.location.search);
+  
+  params.set('sort', sortField);
+  params.set('order', sortOrder);
+  
+  updateBooks(params);
+}
+
+// Example sort dropdown in your UI
+// <select onChange={(e) => handleSortChange('price', e.target.value)}>
+//   <option value="asc">Price: Low to High</option>
+//   <option value="desc">Price: High to Low</option>
+//   <option value="title_asc">Title: A-Z</option>
+//   <option value="title_desc">Title: Z-A</option>
+//   <option value="newest">Newest First</option>
+// </select>
+```
+
+## Pagination
+
+### Headers
+- `Accept`: `application/json`
+- `Content-Type`: `application/json` (for POST/PUT/PATCH requests)
+
+### Authentication
+- Not required for read operations
 
 ### Success Response (200 OK)
 ```json
@@ -33,97 +225,72 @@ Retrieve a list of all available books.
     {
       "id": 1,
       "title": "The Great Gatsby",
-      "author": "F. Scott Fitzgerald",
-      "price": 12.99,
+      "isbn": "9780743273565",
+      "language": "English",
+      "page_count": 180,
       "stock": 15,
-      "cover_url": "/covers/great-gatsby.jpg",
-      "average_rating": 4.2,
-      "review_count": 128
+      "price": 12.99,
+      "author_id": 1,
+      "summary": "A story of decadence and excess...",
+      "published_date": "1925-04-10",
+      "edition": "1st",
+      "cover_url": "http://example.com/covers/great-gatsby.jpg"
     },
     {
       "id": 2,
       "title": "To Kill a Mockingbird",
-      "author": "Harper Lee",
-      "price": 10.99,
+      "isbn": "9780061120084",
+      "language": "English",
+      "page_count": 281,
       "stock": 8,
-      "cover_url": "/covers/mockingbird.jpg",
-      "average_rating": 4.5,
-      "review_count": 256
+      "price": 10.99,
+      "author_id": 2,
+      "summary": "A story of racial injustice...",
+      "published_date": "1960-07-11",
+      "edition": "1st",
+      "cover_url": "http://example.com/covers/mockingbird.jpg"
     }
   ],
   "meta": {
     "current_page": 1,
+    "next_page": 2,
+    "prev_page": null,
     "total_pages": 5,
-    "total_count": 87,
-    "per_page": 20
+    "total_count": 50
   }
 }
 ```
 
 ## Get Single Book
 
-Retrieve detailed information about a specific book, including reviews if requested.
+Retrieve detailed information about a specific book.
 
 **Endpoint**: `GET /books/:id`
 
 ### URL Parameters
 - `id`: Integer (ID of the book to retrieve)
 
-### Query Parameters
-- `include`: String (comma-separated list of related resources to include, e.g., `reviews,author`)
+### Headers
+- `Accept`: `application/json`
+
+### Authentication
+- Not required
 
 ### Success Response (200 OK)
 ```json
 {
   "id": 1,
   "title": "The Great Gatsby",
-  "author": {
-    "id": 3,
-    "name": "F. Scott Fitzgerald",
-    "bio": "American novelist and short story writer..."
-  },
   "isbn": "9780743273565",
-  "description": "A story of decadence and excess...",
-  "price": 12.99,
-  "stock": 15,
-  "published_date": "1925-04-10",
-  "page_count": 180,
   "language": "English",
-  "cover_url": "/covers/great-gatsby.jpg",
-  "average_rating": 4.2,
-  "review_count": 128,
-  "categories": [
-    {
-      "id": 5,
-      "name": "Classic Literature"
-    },
-    {
-      "id": 8,
-      "name": "American Literature"
-    }
-  ],
-  "reviews": [
-    {
-      "id": 42,
-      "rating": 5,
-      "comment": "A timeless classic!",
-      "user": {
-        "id": 12,
-        "username": "booklover42"
-      },
-      "created_at": "2025-07-15T14:30:00.000Z"
-    },
-    {
-      "id": 43,
-      "rating": 4,
-      "comment": "Beautiful prose, though the characters are unlikable.",
-      "user": {
-        "id": 15,
-        "username": "literary_critic"
-      },
-      "created_at": "2025-07-10T09:15:00.000Z"
-    }
-  ]
+  "page_count": 180,
+  "stock": 15,
+  "price": 12.99,
+  "author_id": 1,
+  "summary": "A story of decadence and excess...",
+  "published_date": "1925-04-10",
+  "edition": "1st",
+  "cover_url": "http://example.com/covers/great-gatsby.jpg"
 }
 ```
 
@@ -138,6 +305,11 @@ Filter books by their stock status.
 #### Query Parameters
 - `in_stock`: Boolean (true = only books with stock > 0)
 
+#### Example Request
+```http
+GET /books?in_stock=true
+```
+
 ### By Author
 
 Filter books by author ID.
@@ -146,6 +318,11 @@ Filter books by author ID.
 
 #### Query Parameters
 - `author_id`: Integer (ID of the author)
+
+#### Example Request
+```http
+GET /books?author_id=3
+```
 
 ### By Category
 
@@ -156,76 +333,100 @@ Filter books by category ID.
 #### Query Parameters
 - `category_id`: Integer (ID of the category)
 
-### By Price Range
+#### Example Request
+```http
+GET /books?category_id=5
+```
 
-Filter books within a price range.
+#### Notes:
+- Multiple filters can be combined, e.g., `/books?in_stock=true&category_id=5`
+- The `in_stock` filter is particularly useful for ensuring only available books are displayed
 
-**Endpoint**: `GET /books?min_price=10&max_price=20`
+## Response Format
 
-#### Query Parameters
-- `min_price`: Float (minimum price)
-- `max_price`: Float (maximum price)
+### Book Object
 
-### By Search Query
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Integer | Unique identifier for the book |
+| title | String | Title of the book |
+| isbn | String | International Standard Book Number |
+| language | String | Language of the book content |
+| page_count | Integer | Number of pages |
+| stock | Integer | Number of copies available |
+| price | Decimal | Price in USD |
+| author_id | Integer | ID of the author |
+| summary | String | Brief description of the book |
+| published_date | Date | Publication date (YYYY-MM-DD) |
+| edition | String | Edition information |
+| cover_url | String | URL to the book cover image |
 
-Search books by title, author, or description.
+## Error Handling
 
-**Endpoint**: `GET /books?q=gatsby`
+### Common HTTP Status Codes
 
-#### Query Parameters
-- `q`: String (search query)
+| Status Code | Description |
+|-------------|-------------|
+| 200 OK | Request successful |
+| 201 Created | Resource created successfully |
+| 400 Bad Request | Invalid request parameters |
+| 401 Unauthorized | Authentication required |
+| 403 Forbidden | Insufficient permissions |
+| 404 Not Found | Resource not found |
+| 422 Unprocessable Entity | Validation errors |
+| 429 Too Many Requests | Rate limit exceeded |
+| 500 Internal Server Error | Server error |
 
-## Sorting
+### Error Response Format
 
-Sort books by different criteria.
-
-**Endpoint**: `GET /books?sort=price_asc`
-
-### Sort Options
-- `newest`: Most recently added first
-- `price_asc`: Price low to high
-- `price_desc`: Price high to low
-- `title_asc`: Title A-Z
-- `title_desc`: Title Z-A
-- `rating`: Highest rated first
-- `popular`: Most purchased first
-
-## Pagination
-
-All list endpoints support pagination.
-
-**Example**: `GET /books?page=2&per_page=10`
-
-### Response Metadata
 ```json
 {
-  "books": [...],
-  "meta": {
-    "current_page": 2,
-    "total_pages": 9,
-    "total_count": 87,
-    "per_page": 10
+  "error": "Human-readable error message",
+  "code": "error_code",
+  "details": {
+    "field_name": ["error message"],
+    "nested_field": ["error message"]
   }
 }
 ```
 
-## Error Handling
+### Common Error Scenarios
 
-### Common Error Responses
-
-**400 Bad Request**
+#### Book Not Found (404)
 ```json
 {
-  "error": "Invalid price range"
+  "error": "Book not found",
+  "code": "not_found"
 }
 ```
 
-**404 Not Found**
+#### Invalid Parameters (400)
 ```json
 {
-  "error": "Book not found"
+  "error": "Invalid parameters",
+  "code": "invalid_parameters",
+  "details": {
+    "per_page": ["must be less than or equal to 100"]
+  }
 }
 ```
+
+## Best Practices
+
+1. **Caching**: Consider implementing client-side caching for book data that doesn't change frequently
+2. **Pagination**: Always implement pagination for lists to improve performance
+3. **Error Handling**: Handle all possible error responses gracefully
+4. **Rate Limiting**: Implement proper error handling for rate limit responses
+5. **Image Handling**: Use appropriate image sizes and lazy loading for book covers
+6. **Retry Logic**: Implement retry logic for failed requests with exponential backoff
+
+## Versioning
+
+API versioning is handled through the URL path (e.g., `/api/v1/books`). The current version is v1.
+
+## Support
+
+For additional support, please contact [support@loverary.com](mailto:support@loverary.com) or visit our [developer portal](https://developer.loverary.com).
 
 ## Important Notes
 1. All prices are in the store's base currency (e.g., USD).

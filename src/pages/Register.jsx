@@ -1,10 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
+import { 
+  TextField, 
+  Button, 
+  Typography, 
+  Container, 
+  Box, 
+  Grid, 
+  Link as MuiLink, 
+  CircularProgress,
+  Alert,
+  Paper,
+  InputAdornment,
+  IconButton
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useAuth from '../hooks/useAuth';
+
+const PASSWORD_STRENGTH = {
+  TOO_SHORT: 'Password is too short (minimum 6 characters)',
+  WEAK: 'Weak - try adding more characters or numbers',
+  MEDIUM: 'Medium - try adding special characters',
+  STRONG: 'Strong password',
+};
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -12,26 +34,43 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const checkPasswordStrength = (password) => {
+    if (!password) return '';
+    if (password.length < 6) return PASSWORD_STRENGTH.TOO_SHORT;
+    if (password.length < 8) return PASSWORD_STRENGTH.WEAK;
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return PASSWORD_STRENGTH.MEDIUM;
+    return PASSWORD_STRENGTH.STRONG;
+  };
 
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
     
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Please enter a valid email address';
     }
     
+    const strength = checkPasswordStrength(formData.password);
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      setPasswordStrength('');
+    } else if (strength === PASSWORD_STRENGTH.TOO_SHORT) {
+      newErrors.password = PASSWORD_STRENGTH.TOO_SHORT;
+      setPasswordStrength(PASSWORD_STRENGTH.TOO_SHORT);
+    } else {
+      setPasswordStrength(strength);
     }
     
     if (formData.password !== formData.confirmPassword) {
@@ -42,6 +81,14 @@ export default function Register() {
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    if (formData.password) {
+      setPasswordStrength(checkPasswordStrength(formData.password));
+    } else {
+      setPasswordStrength('');
+    }
+  }, [formData.password]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -49,7 +96,6 @@ export default function Register() {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -57,6 +103,14 @@ export default function Register() {
         return newErrors;
       });
     }
+    
+    if (submitError) {
+      setSubmitError('');
+    }
+  };
+  
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -70,150 +124,180 @@ export default function Register() {
     setIsSubmitting(true);
     
     try {
-      // Call the register function from AuthContext
-      await register({
-        name: formData.name,
+      // Register the user
+      const result = await register({
+        username: formData.username,
         email: formData.email,
         password: formData.password
       });
       
-      // Redirect to home page after successful registration
-      // The AuthProvider will automatically log the user in after registration
-      navigate('/');
+      if (result?.success) {
+        // Only redirect if registration was successful
+        navigate('/login', { 
+          replace: true,
+          state: { 
+            registrationSuccess: true,
+            email: formData.email 
+          } 
+        });
+      }
     } catch (err) {
       console.error('Registration error:', err);
-      setSubmitError(err.message || 'Registration failed. Please try again.');
+      
+      if (err.response) {
+        if (err.response.status === 422) {
+          const serverErrors = err.response.data.errors || [];
+          setSubmitError(serverErrors.join('\n'));
+        } else if (err.response.status === 400) {
+          setSubmitError(err.response.data.error || 'Invalid request. Please check your input.');
+        } else {
+          setSubmitError('An error occurred during registration. Please try again.');
+        }
+      } else if (err.request) {
+        setSubmitError('Unable to connect to the server. Please check your connection.');
+      } else {
+        setSubmitError(err.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getPasswordStrengthColor = () => {
+    if (!passwordStrength) return 'inherit';
+    if (passwordStrength === PASSWORD_STRENGTH.TOO_SHORT) return 'error';
+    if (passwordStrength === PASSWORD_STRENGTH.WEAK) return 'warning';
+    if (passwordStrength === PASSWORD_STRENGTH.MEDIUM) return 'info';
+    return 'success';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Create Your Account</h1>
+    <Container component="main" maxWidth="sm">
+      <Paper elevation={3} sx={{ p: 4, mt: 8, mb: 4 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+            Create Your Account
+          </Typography>
+          
+          {submitError && (
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              {submitError}
+            </Alert>
+          )}
         
-        {submitError && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {submitError}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent`}
-              placeholder="John Doe"
-              required
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
-          </div>
-          
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent`}
-              placeholder="you@example.com"
-              required
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
-          </div>
-          
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent`}
-              placeholder="••••••••"
-              required
-              minLength="6"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
-          </div>
-          
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent`}
-              placeholder="••••••••"
-              required
-            />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-            )}
-          </div>
-          
-          <div className="flex items-start">
-            <div className="flex items-center h-5">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                required
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor="terms" className="font-medium text-gray-700">
-                I agree to the <a href="#" className="text-amber-600 hover:text-amber-500">Terms of Service</a> and <a href="#" className="text-amber-600 hover:text-amber-500">Privacy Policy</a>
-              </label>
-            </div>
-          </div>
-          
-          <div>
-            <button
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  autoComplete="username"
+                  name="username"
+                  required
+                  fullWidth
+                  id="username"
+                  label="Username"
+                  autoFocus
+                  value={formData.username}
+                  onChange={handleChange}
+                  error={!!errors.username}
+                  helperText={errors.username || ' '}
+                  disabled={isSubmitting}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  id="email"
+                  label="Email Address"
+                  name="email"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={!!errors.email}
+                  helperText={errors.email || ' '}
+                  disabled={isSubmitting}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  autoComplete="new-password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={!!errors.password}
+                  helperText={passwordStrength || ' '}
+                  disabled={isSubmitting}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={togglePasswordVisibility}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                {passwordStrength && (
+                  <Typography 
+                    variant="caption" 
+                    color={getPasswordStrengthColor()}
+                    sx={{ display: 'block', mt: 0.5 }}
+                  >
+                    {passwordStrength}
+                  </Typography>
+                )}
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  type={showPassword ? 'text' : 'password'}
+                  id="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword || ' '}
+                  disabled={isSubmitting}
+                />
+              </Grid>
+            </Grid>
+            
+            <Button
               type="submit"
+              fullWidth
+              variant="contained"
               disabled={isSubmitting}
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+              sx={{ mt: 3, mb: 2 }}
             >
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </div>
-        </form>
-        
-        <div className="mt-6 text-center text-sm">
-          <p className="text-gray-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-amber-600 hover:text-amber-500">
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+              {isSubmitting ? (
+                <>
+                  <CircularProgress size={24} sx={{ mr: 1 }} />
+                  Creating Account...
+                </>
+              ) : 'Create Account'}
+            </Button>
+            
+            <Grid container justifyContent="flex-end">
+              <Grid item>
+                <MuiLink component={Link} to="/login" variant="body2">
+                  Already have an account? Sign in
+                </MuiLink>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      </Paper>
+    </Container>
   );
 }

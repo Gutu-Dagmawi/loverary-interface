@@ -1,216 +1,255 @@
-import api from './api';
+import api, { fetchCSRFToken } from './api';
+
+// Cache for the current cart
+let currentCart = null;
 
 /**
- * Fetches the current user's cart
- * @returns {Promise<Array>} Array of cart items
+ * Clears the cart cache
  */
-// Get the current user's active cart
+const clearCache = () => {
+  currentCart = null;
+};
+
+/**
+ * Fetches the current user's active cart
+ * @returns {Promise<Object>} The current cart with items
+ */
 const getActiveCart = async () => {
   try {
-    // In a real app, we'd filter by the current user's ID
-    const response = await api.get('/carts?status=1&_embed=cart_items');
+    if (currentCart) {
+      console.log('Returning cached cart:', currentCart);
+      return currentCart;
+    }
+
+    console.log('Fetching active cart from API...');
+    const response = await api.get('/carts/active');
+    console.log('API Response:', response.data);
     
-    // If we have an active cart, return it with items
-    if (response.data && response.data.length > 0) {
-      const cart = response.data[0];
-      // Ensure cart_items is always an array
-      if (!cart.cart_items) {
-        cart.cart_items = [];
-      } else if (!Array.isArray(cart.cart_items)) {
-        // Handle case where cart_items is not an array
+    if (response.data) {
+      // Get the cart object from the response
+      let cart = response.data.cart || response.data;
+      
+      // Map the items to the expected format
+      if (cart.items && Array.isArray(cart.items)) {
+        console.log('Found items in cart:', cart.items);
+        // Convert items to cart_items format for backward compatibility
+        cart.cart_items = cart.items.map(item => ({
+          id: item.id,
+          book_id: item.book_id,
+          quantity: item.quantity,
+          price: item.price,
+          title: item.title,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
+      } else {
+        console.log('No items found in cart');
         cart.cart_items = [];
       }
+      
+      console.log('Returning cart with items:', cart);
+      currentCart = cart;
       return cart;
     }
     
-    // If no active cart exists, create one for the user
-    try {
-      const newCart = await api.post('/carts', {
-        user_id: 1, // In a real app, this would be the current user's ID
-        status: 1, // 1 = active, 2 = completed, etc.
-        total_price: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-      
-      // Ensure we always return a cart with items array
+    // If no data in response
+    throw new Error('No data in response');
+    
+  } catch (error) {
+    // Handle 401 Unauthorized - clear auth token and redirect to login
+    if (error.response && error.response.status === 401) {
+      console.warn('User not authenticated, clearing auth data');
+      // Clear any existing auth data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      // Don't throw to prevent infinite loops, just return empty cart
       return { 
-        ...newCart.data, 
         cart_items: [],
-        total_price: 0
-      };
-      
-    } catch (createError) {
-      console.error('Error creating new cart:', createError);
-      // Return a fallback cart object if creation fails
-      return {
-        id: 'fallback-cart',
-        user_id: 1,
-        status: 1,
-        total_price: 0,
-        cart_items: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        total: 0,
+        subtotal: 0,
+        tax: 0,
+        shipping: 0
       };
     }
     
-  } catch (error) {
-    console.error('Error in getActiveCart:', error);
-    // Return a fallback cart object if there's an error
-    return {
-      id: 'error-cart',
-      user_id: 1,
-      status: 1,
-      total_price: 0,
+    // If no active cart exists (404) or server error (500), return an empty cart
+    if (error.response && (error.response.status === 404 || error.response.status === 500)) {
+      console.warn('No active cart found or server error, returning empty cart');
+      return { 
+        cart_items: [],
+        total: 0,
+        subtotal: 0,
+        tax: 0,
+        shipping: 0
+      };
+    }
+    
+    console.error('Error fetching active cart:', error);
+    
+    // For other errors, still return an empty cart but log the error
+    return { 
       cart_items: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      total: 0,
+      subtotal: 0,
+      tax: 0,
+      shipping: 0
     };
   }
 };
 
+/**
+ * Get the current cart items
+ * @returns {Promise<Array>} Array of cart items
+ */
 export const getCart = async () => {
   try {
     const cart = await getActiveCart();
     return cart.cart_items || [];
   } catch (error) {
     console.error('Error fetching cart items:', error);
-    return [];
-  }
-};
-
-/**
- * Adds an item to the cart
- * @param {number} bookId - The ID of the book to add
- * @param {number} quantity - The quantity to add
- * @returns {Promise<Object>} The updated cart item
- */
-export const addToCart = async (bookId, quantity = 1) => {
-  try {
-    // Get the active cart
-    const cart = await getActiveCart();
-    
-    // Check if the item already exists in the cart
-    const existingItem = cart.cart_items?.find(item => item.book_id == bookId);
-    
-    if (existingItem) {
-      // Update quantity if item exists
-      return await updateCartItem(existingItem.id, existingItem.quantity + quantity);
-    } else {
-      // Add new item to cart
-      const response = await api.post('/cart_items', {
-        cart_id: cart.id,
-        book_id: bookId,
-        quantity: quantity,
-        price: 0, // Will be updated by the server
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-      
-      // Update cart total
-      await updateCartTotal(cart.id);
-      
-      return response.data;
-    }
-  } catch (error) {
-    console.error('Error adding to cart:', error);
     throw error;
   }
 };
 
-// Helper function to update cart total
-const updateCartTotal = async (cartId) => {
-  if (!cartId) {
-    console.error('No cartId provided to updateCartTotal');
-    return 0;
-  }
-  
-  try {
-    console.log(`Updating cart total for cart ID: ${cartId} (type: ${typeof cartId})`);
-    
-    // First, get all cart items
-    const response = await api.get('/cart_items');
-    console.log('Cart items response:', response.status, response.data);
-    
-    // Filter items for the current cart on the client side
-    const items = Array.isArray(response.data) 
-      ? response.data.filter(item => {
-          const cartMatch = parseInt(item.cart_id) === parseInt(cartId);
-          if (!cartMatch) {
-            console.log(`Skipping item ${item.id} - cart_id: ${item.cart_id} (type: ${typeof item.cart_id})`);
-          }
-          return cartMatch;
-        })
-      : [];
-    
-    console.log(`Found ${items.length} items for cart ${cartId}`);
-    
-    // Calculate the new total
-    const total = items.reduce((sum, item) => {
-      const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
-      console.log(`Item ${item.id}: ${item.quantity} x ${item.price} = ${itemTotal}`);
-      return sum + itemTotal;
-    }, 0);
-    
-    console.log(`Calculated total: ${total}`);
-    
-    // Update the cart's total_price
-    const updateData = {
-      total_price: parseFloat(total.toFixed(2)),
-      updated_at: new Date().toISOString()
-    };
-    
-    console.log('Updating cart with data:', updateData);
-    
-    try {
-      const updateResponse = await api.patch(`/carts/${cartId}`, updateData);
-      console.log('Cart update successful:', updateResponse.status, updateResponse.data);
-      return total;
-    } catch (updateError) {
-      console.error('Failed to update cart:', updateError);
-      if (updateError.response) {
-        console.error('Response data:', updateError.response.data);
-        console.error('Response status:', updateError.response.status);
-        console.error('Response headers:', updateError.response.headers);
+/**
+ * Adds one or more items to the cart
+ * @param {number|Object|Array} bookIdOrItems - Either a book ID, an item object, or an array of items
+ * @param {number} [quantity=1] - Quantity to add (only used if first parameter is a book ID)
+ * @returns {Promise<Object>} The updated cart
+ * @throws {Error} If the request fails or items are invalid
+ */
+export const addToCart = async (bookIdOrItems, quantity = 1) => {
+  let itemsToAdd = [];
+
+  // Handle different parameter formats
+  if (typeof bookIdOrItems === 'number' || typeof bookIdOrItems === 'string') {
+    // Single book ID with optional quantity
+    itemsToAdd = [{
+      book_id: parseInt(bookIdOrItems, 10),
+      quantity: parseInt(quantity, 10) || 1
+    }];
+  } else if (Array.isArray(bookIdOrItems)) {
+    // Array of items
+    itemsToAdd = bookIdOrItems.map(item => {
+      if (typeof item === 'number' || typeof item === 'string') {
+        return {
+          book_id: parseInt(item, 10),
+          quantity: 1
+        };
       }
-      throw updateError;
-    }
-  } catch (error) {
-    console.error('Error updating cart total:', error);
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error response status:', error.response.status);
-    }
-    // Re-throw the error to be handled by the caller
-    throw error;
+      return {
+        book_id: parseInt(item.book_id || item.id, 10),
+        quantity: parseInt(item.quantity, 10) || 1
+      };
+    });
+  } else if (bookIdOrItems && typeof bookIdOrItems === 'object') {
+    // Single item object
+    itemsToAdd = [{
+      book_id: parseInt(bookIdOrItems.book_id || bookIdOrItems.id, 10),
+      quantity: parseInt(bookIdOrItems.quantity, 10) || 1
+    }];
   }
-};
 
-/**
- * Updates the quantity of a cart item
- * @param {number} bookId - The ID of the book to update
- * @param {number} quantity - The new quantity
- * @returns {Promise<Object>} The updated cart item
- */
-export const updateCartItem = async (itemId, quantity) => {
+  // Validate items
+  if (itemsToAdd.length === 0) {
+    throw new Error('At least one valid item with book_id and quantity is required');
+  }
+
+  const invalidItem = itemsToAdd.find(item => 
+    isNaN(item.book_id) || item.book_id <= 0 || 
+    isNaN(item.quantity) || item.quantity <= 0
+  );
+
+  if (invalidItem) {
+    throw new Error('Each item must contain a valid book_id (number > 0) and quantity (number > 0)');
+  }
+
   try {
-    const updatedQuantity = Math.max(1, Math.min(quantity, 100));
+    await fetchCSRFToken(); // Ensure we have a fresh CSRF token
     
-    // Get the current item to update
-    const itemResponse = await api.get(`/cart_items/${itemId}`);
-    const item = itemResponse.data;
-    
-    const response = await api.patch(`/cart_items/${itemId}`, {
-      quantity: updatedQuantity,
-      updated_at: new Date().toISOString()
+    // Send items in the cart parameter as expected by the backend
+    const response = await api.post('/carts/add', {
+      cart: itemsToAdd
     });
     
-    // Update cart total
-    await updateCartTotal(item.cart_id);
+    if (response.data && response.data.cart) {
+      currentCart = response.data.cart;
+    } else {
+      throw new Error('Invalid response format from server');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error adding to cart:', {
+      error: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    
+    // Handle specific error cases
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      if (status === 400) {
+        throw new Error(data.error || 'Invalid request. Please check the item details.');
+      } else if (status === 401) {
+        throw new Error('Please log in to add items to your cart');
+      } else if (status === 404) {
+        throw new Error('One or more books could not be found');
+      } else if (status === 406) {
+        throw new Error('No valid items in request');
+      } else if (status === 409) {
+        throw new Error('Insufficient stock for one or more items');
+      } else if (status === 422) {
+        const errorMsg = data?.errors?.items?.join('\n') || 'Invalid item data';
+        throw new Error(errorMsg);
+      } else if (status >= 500) {
+        throw new Error('Server error. Please try again later.');
+      }
+    }
+    
+    throw error;
+  }
+};
+
+/**
+ * Updates the quantity of an item in the cart
+ * @param {number} bookId - The ID of the book to update
+ * @param {number} quantity - The new quantity (0 to remove)
+ * @returns {Promise<Object>} The updated cart
+ */
+export const updateCartItem = async (bookId, quantity) => {
+  try {
+    await fetchCSRFToken();
+    
+    // Send parameters as URL-encoded form data to match Rails' expected format
+    const params = new URLSearchParams();
+    params.append('book_id', bookId);
+    params.append('quantity', quantity);
+    
+    const response = await api.patch('/carts', params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    
+    if (response.data && response.data.cart) {
+      currentCart = response.data.cart;
+    }
     
     return response.data;
   } catch (error) {
     console.error('Error updating cart item:', error);
+    
+    if (error.response) {
+      if (error.response.status === 404) {
+        throw new Error('Item not found in cart');
+      } else if (error.response.status === 422) {
+        const errorMsg = error.response.data?.errors?.quantity?.[0] || 'Invalid quantity';
+        throw new Error(errorMsg);
+      }
+    }
+    
     throw error;
   }
 };
@@ -218,64 +257,117 @@ export const updateCartItem = async (itemId, quantity) => {
 /**
  * Removes an item from the cart
  * @param {number} bookId - The ID of the book to remove
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} The updated cart
  */
-export const removeFromCart = async (itemId) => {
+export const removeFromCart = async (bookId) => {
   try {
-    // Get the item first to get the cart ID
-    const itemResponse = await api.get(`/cart_items/${itemId}`);
-    const item = itemResponse.data;
+    await fetchCSRFToken();
     
-    // Delete the item
-    await api.delete(`/cart_items/${itemId}`);
+    // Use the correct endpoint format: /carts/remove/:book_id
+    const response = await api.delete(`/carts/remove/${bookId}`);
     
-    // Update cart total
-    if (item && item.cart_id) {
-      await updateCartTotal(item.cart_id);
+    if (response.data && response.data.cart) {
+      currentCart = response.data.cart;
     }
+    
+    return response.data;
   } catch (error) {
-    console.error('Error removing from cart:', error);
+    console.error('Error removing item from cart:', error);
+    
+    if (error.response) {
+      if (error.response.status === 404) {
+        throw new Error('Item not found in cart');
+      } else if (error.response.status === 401) {
+        throw new Error('Please log in to modify your cart');
+      }
+    }
+    
     throw error;
   }
 };
 
 /**
- * Clears the entire cart
- * @returns {Promise<void>}
+ * Clears all items from the cart
+ * @returns {Promise<Object>} The empty cart
  */
 export const clearCart = async () => {
   try {
-    const cart = await getActiveCart();
-    const cartId = cart.id;
+    await fetchCSRFToken();
     
-    // Get all items in the cart
-    const itemsResponse = await api.get(`/cart_items?cart_id=${cartId}`);
-    const items = itemsResponse.data || [];
+    const response = await api.delete('/carts/clear');
     
-    // Delete all items
-    await Promise.all(
-      items.map(item => api.delete(`/cart_items/${item.id}`))
-    );
+    if (response.data && response.data.cart) {
+      currentCart = response.data.cart;
+    }
     
-    // Update cart total to zero
-    await api.patch(`/carts/${cartId}`, {
-      total_price: '0.00',
-      updated_at: new Date().toISOString()
-    });
-    
-    return [];
+    return response.data;
   } catch (error) {
     console.error('Error clearing cart:', error);
+    
+    if (error.response) {
+      if (error.response.status === 401) {
+        throw new Error('Please log in to modify your cart');
+      }
+    }
+    
     throw error;
   }
 };
 
-export default {
+/**
+ * Initiates the checkout process
+ * @returns {Promise<Object>} The order details
+ */
+export const checkout = async () => {
+  try {
+    await fetchCSRFToken();
+    
+    // First, complete the checkout
+    const checkoutResponse = await api.post('/carts/checkout', {});
+    
+    // Then, fetch the updated orders list using the correct endpoint
+    const ordersResponse = await api.get('/users/orders');
+    
+    // Clear the cart cache after successful checkout
+    if (checkoutResponse.data && checkoutResponse.data.order) {
+      currentCart = { cart_items: [] };
+    }
+    
+    // Return both the checkout and orders data
+    return {
+      ...checkoutResponse.data,
+      orders: ordersResponse.data.orders || []
+    };
+  } catch (error) {
+    console.error('Error during checkout:', error);
+    
+    if (error.response) {
+      if (error.response.status === 401) {
+        throw new Error('Please log in to complete your purchase');
+      } else if (error.response.status === 400) {
+        throw new Error(error.response.data.message || 'Unable to process checkout');
+      } else if (error.response.status === 422) {
+        const errorMsg = error.response.data?.errors?.join(' ') || 'Invalid cart data';
+        throw new Error(errorMsg);
+      }
+    }
+    
+    throw error;
+  }
+};
+
+// All functions are exported inline above
+
+// Also provide a default export for backward compatibility
+const cartService = {
   getCart,
   getActiveCart,
   addToCart,
   updateCartItem,
   removeFromCart,
   clearCart,
-  updateCartTotal
+  checkout,
+  clearCache
 };
+
+export default cartService;

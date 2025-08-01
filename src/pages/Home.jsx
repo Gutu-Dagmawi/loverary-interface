@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import Nav from "../components/Nav.jsx";
 import Card from "../components/Card";
 import FilterBar from "../components/FilterBar";
@@ -11,7 +11,37 @@ export default function Home() {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({});
     const { addToCart } = useCart();
+    
+    // Memoize filter changes to prevent unnecessary re-renders
+    const handleFilterChange = useCallback((newFilters) => {
+        console.log("Filters changed:", newFilters);
+        
+        // Convert filter values to the format expected by the API
+        const cleanedFilters = {};
+        
+        // Only include non-empty values
+        if (newFilters.q) cleanedFilters.q = newFilters.q;
+        if (newFilters.author_id?.length) cleanedFilters.author_id = newFilters.author_id;
+        if (newFilters.category_id?.length) cleanedFilters.category_id = newFilters.category_id;
+        if (newFilters.min_price) cleanedFilters.min_price = Number(newFilters.min_price);
+        if (newFilters.max_price) cleanedFilters.max_price = Number(newFilters.max_price);
+        if (newFilters.in_stock) cleanedFilters.in_stock = true;
+        
+        // Only update if filters have actually changed
+        setFilters(prevFilters => {
+            const prev = JSON.stringify(prevFilters);
+            const next = JSON.stringify(cleanedFilters);
+            
+            if (prev !== next) {
+                console.log('Updating filters:', cleanedFilters);
+                return cleanedFilters;
+            }
+            console.log('Skipping filter update - no changes');
+            return prevFilters;
+        });
+    }, []);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
@@ -39,17 +69,21 @@ export default function Home() {
     useEffect(() => {
         const fetchBooks = async () => {
             try {
-                const data = await getBooks();
-                setBooks(data);
+                setLoading(true);
+                setError(null);
+                const { books } = await getBooks(filters);
+                setBooks(books || []);
             } catch (err) {
+                console.error('Error fetching books:', err);
                 setError(err.message);
+                setBooks([]); // Ensure books is always an array
             } finally {
                 setLoading(false);
             }
         };
 
         fetchBooks();
-    }, []);
+    }, [filters]);
 
     if (loading) {
         return (<div className="min-h-screen bg-gray-50">
@@ -79,14 +113,11 @@ export default function Home() {
             </div>);
     }
 
-    const handleFilterChange = (filters) => {
-        console.log("Filters changed:", filters);
-        // TODO: Implement filtering logic based on the filters
-    };
+    // Moved to the top of the component
 
     const handleAddToCart = async (book) => {
         try {
-            await addToCart(book.id, 1);
+            await addToCart(book, 1);
             showSnackbar(`${book.title} added to cart!`, 'success');
         } catch (error) {
             console.error('Error adding to cart:', error);
@@ -144,9 +175,9 @@ export default function Home() {
                             <div key={book.id} className="flex justify-center w-full h-full">
                                 <Card
                                     title={book.title}
-                                    author={book.author}
+                                    author_name={book.author_name}
                                     price={book.price || 0}
-                                    imageUrl={book.cover_url}
+                                    cover_url={book.cover_url}
                                     to={`/books/${book.id}`}
                                     className="w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] h-full transition-transform duration-200 hover:scale-105"
                                     onAddToCart={() => handleAddToCart(book)}

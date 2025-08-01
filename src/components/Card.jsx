@@ -7,8 +7,8 @@ import { green } from '@mui/material/colors';
 
 const Card = ({ 
   title, 
-  author, 
-  imageUrl,
+  author_name, 
+  cover_url,
   price = 'N/A',
   className = '',
   to = '#',
@@ -31,14 +31,14 @@ const Card = ({
     <NavLink className={`group flex flex-col h-full rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 hover:border-gray-300 ${className}`} to={to}>
       {/* Book Cover */}
       <div className="bg-gray-50 overflow-hidden h-[200px] sm:h-[240px] md:h-[280px] flex items-center justify-center p-2">
-        {imageUrl ? (
+        {cover_url ? (
           <img 
-            src={imageUrl} 
+            src={cover_url} 
             alt={`Cover of ${title}`}
             className="object-contain w-full h-full transition-transform duration-200 group-hover:scale-105"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = 'https://via.placeholder.com/100x150?text=No+Cover';
+              e.target.style.display = 'none';
             }}
           />
         ) : (
@@ -55,7 +55,9 @@ const Card = ({
         <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight mb-1 min-h-[2.5em]" title={title}>
           {title}
         </h3>
-        <p className="text-xs text-gray-500 mb-2 line-clamp-1">{author}</p>
+        {author_name && (
+          <p className="text-xs text-gray-500 mb-2 line-clamp-1">by {author_name}</p>
+        )}
 
         {/* Price and Actions */}
         <div className="mt-auto pt-2 border-t border-gray-100">
@@ -102,14 +104,13 @@ const Card = ({
 
 Card.propTypes = {
   title: PropTypes.string.isRequired,
-  author: PropTypes.string.isRequired,
+  author_name: PropTypes.string,
   price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  imageUrl: PropTypes.string,
-  buttonText: PropTypes.string,
+  cover_url: PropTypes.string,
   className: PropTypes.string,
   to: PropTypes.string,
-  showButton: PropTypes.bool,
   onAddToCart: PropTypes.func,
+  showButton: PropTypes.bool,
 };
 
 export default Card;

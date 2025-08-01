@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
 import useAuth from '../hooks/useAuth';
 
@@ -8,9 +8,20 @@ export default function Login() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const location = useNavigate();
   const navigate = useNavigate();
+
+  // Check for registration success message
+  useEffect(() => {
+    if (location.state?.registrationSuccess) {
+      setSuccessMessage(`Registration successful! Please log in with your email ${location.state.email || ''}`);
+      // Clear the state to prevent showing the message again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,13 +38,13 @@ export default function Login() {
     try {
       setIsLoading(true);
       // Call the login function from AuthContext
-      await login({
+      const result = await login({
         email: formData.email,
         password: formData.password
       });
       
-      // Redirect to home page after successful login
-      navigate('/');
+      // Redirect to the intended page or home after successful login
+      navigate(result.redirectTo || '/', { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to log in. Please check your credentials.');
@@ -47,6 +58,11 @@ export default function Login() {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">Login to Your Account</h1>
         
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+            {successMessage}
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}

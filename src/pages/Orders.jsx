@@ -16,15 +16,26 @@ export default function Orders() {
         setIsLoading(true);
         setError(null);
         
-        const orders = await getOrders();
+        const response = await getOrders();
         
-        // Format the orders to match the expected structure
-        const formattedOrders = orders.map(order => ({
+        // The response is already the orders array from the service
+        const ordersData = Array.isArray(response) ? response : [];
+        
+        const formattedOrders = ordersData.map(order => ({
           ...order,
-          // Convert status number to string for the UI
           status: getStatusText(order.status),
-          // Ensure order_items is an array
-          order_items: order.order_items || []
+          order_items: (order.order_items || []).map(item => ({
+            ...item,
+            book: {
+              ...item.book,
+              // Ensure price is a number
+              price: parseFloat(item.book?.price || 0)
+            },
+            // Ensure quantity is a number
+            quantity: parseInt(item.quantity, 10) || 1,
+            // Ensure price is a number
+            price: parseFloat(item.price || 0)
+          }))
         }));
         
         setOrders(formattedOrders);
@@ -39,15 +50,21 @@ export default function Orders() {
     fetchOrders();
   }, []);
   
-  // Helper function to convert status number to text
-  const getStatusText = (statusCode) => {
+  // Helper function to handle both string and number status values
+  const getStatusText = (status) => {
+    // If status is already a string, return it as is
+    if (typeof status === 'string') {
+      return status.toLowerCase();
+    }
+    
+    // Handle numeric status codes
     const statusMap = {
       0: 'pending',
       1: 'processing',
       2: 'completed',
       3: 'cancelled'
     };
-    return statusMap[statusCode] || 'pending';
+    return statusMap[status] || 'pending';
   };
 
   if (isLoading) {

@@ -3,6 +3,16 @@ import { useNavigate } from 'react-router';
 import AuthContext from './auth-context';
 import authService from '../services/authService';
 
+// Helper function for consistent logging
+const logger = {
+  info: (component, message, data = {}) => {
+    console.log(`[Auth][${component}] ${message}`, data);
+  },
+  error: (component, message, error = {}) => {
+    console.error(`[Auth][${component}][ERROR] ${message}`, error);
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,14 +21,20 @@ export const AuthProvider = ({ children }) => {
   // Check if user is logged in on initial load
   useEffect(() => {
     const checkAuth = async () => {
+      logger.info('AuthProvider', 'Checking authentication status');
       try {
         const currentUser = await authService.getCurrentUser();
+        logger.info('AuthProvider', 'Auth check completed', { hasUser: !!currentUser });
         if (currentUser) {
+          logger.info('AuthProvider', 'User authenticated', { userId: currentUser.id });
           setUser(currentUser);
+        } else {
+          logger.info('AuthProvider', 'No authenticated user found');
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        logger.error('AuthProvider', 'Auth check failed', error);
       } finally {
+        logger.info('AuthProvider', 'Setting loading to false');
         setLoading(false);
       }
     };
@@ -27,37 +43,43 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
+    logger.info('AuthProvider', 'Login attempt', { email: credentials.email });
     try {
-      const user = await authService.login(credentials);
-      setUser(user);
-      return user;
+      const response = await authService.login(credentials);
+      logger.info('AuthProvider', 'Login successful', { userId: response?.id });
+      // Set the user from the response
+      setUser(response);
+      return response;
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('AuthProvider', 'Login failed', error);
       throw error;
     }
   };
 
   const register = async (userData) => {
+    logger.info('AuthProvider', 'Registration attempt', { email: userData.email });
     try {
       // Register the user
-      await authService.register(userData);
-      // Auto-login after registration
-      return login({
-        email: userData.email,
-        password: userData.password
-      });
+      const user = await authService.register(userData);
+      logger.info('AuthProvider', 'Registration successful', { userId: user?.id });
+      // Set the user directly from registration response
+      setUser(user);
+      return user;
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('AuthProvider', 'Registration failed', error);
       throw error;
     }
   };
 
   const logout = async () => {
+    logger.info('AuthProvider', 'Logout initiated');
     try {
       await authService.logout();
+      logger.info('AuthProvider', 'Logout successful');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('AuthProvider', 'Logout error', error);
     } finally {
+      logger.info('AuthProvider', 'Clearing user and redirecting to login');
       setUser(null);
       navigate('/login');
     }
